@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { createUserProfile } from '../services/userService';
-import { GraduationCap } from 'lucide-react';
+import { Cat } from 'lucide-react';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -58,7 +58,7 @@ export default function Signup() {
       <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-700">
         <div className="flex flex-col items-center mb-8">
           <div className="p-3 bg-indigo-600 rounded-full mb-4">
-            <GraduationCap className="w-8 h-8 text-white" />
+            <Cat className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-white">Create Account</h2>
           <p className="text-gray-400 mt-2">Join EduCat today</p>

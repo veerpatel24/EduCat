@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, Brain, User, Clock, PlusSquare, Ghost } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Brain, User, Clock, PlusSquare, Ghost, Cat } from 'lucide-react';
 
 const Sidebar = () => {
   const mainNavItems = [
@@ -13,8 +13,11 @@ const Sidebar = () => {
 
   return (
     <aside className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 flex flex-col border-r border-gray-800">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+      <div className="p-6 flex items-center gap-3">
+        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/30">
+          <Cat className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm tracking-tight">
           EduCat
         </h1>
       </div>
