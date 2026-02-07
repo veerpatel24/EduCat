@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export interface UserProfile {
@@ -7,6 +7,15 @@ export interface UserProfile {
   points: number;
   createdAt: string;
   studyTime: number; // in minutes
+}
+
+export interface UserActivity {
+  id?: string;
+  uid: string;
+  type: 'ai_tutor' | 'pomodoro' | 'assignment' | 'other';
+  title: string;
+  description: string;
+  timestamp: string;
 }
 
 export const createUserProfile = async (uid: string, email: string) => {
@@ -41,4 +50,34 @@ export const getUserProfile = async (uid: string) => {
 export const updateUserPoints = async (uid: string, points: number) => {
   const userRef = doc(db, 'users', uid);
   await updateDoc(userRef, { points });
+};
+
+export const addUserActivity = async (activity: Omit<UserActivity, 'id'>) => {
+  try {
+    const activitiesRef = collection(db, 'activities');
+    await addDoc(activitiesRef, activity);
+  } catch (error) {
+    console.error("Error adding activity:", error);
+  }
+};
+
+export const getUserActivities = async (uid: string, limitCount = 5) => {
+  try {
+    const activitiesRef = collection(db, 'activities');
+    const q = query(
+      activitiesRef, 
+      where('uid', '==', uid),
+      orderBy('timestamp', 'desc'),
+      limit(limitCount)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as UserActivity[];
+  } catch (error) {
+    console.error("Error fetching activities:", error);
+    return [];
+  }
 };

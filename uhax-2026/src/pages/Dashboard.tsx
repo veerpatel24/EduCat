@@ -1,28 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserProfile, type UserProfile } from '../services/userService';
+import { getUserProfile, getUserActivities, type UserProfile, type UserActivity } from '../services/userService';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       if (user?.uid) {
         try {
-          const userProfile = await getUserProfile(user.uid);
+          const [userProfile, userActivities] = await Promise.all([
+            getUserProfile(user.uid),
+            getUserActivities(user.uid)
+          ]);
           setProfile(userProfile);
+          setActivities(userActivities);
         } catch (error) {
-          console.error("Error fetching profile:", error);
+          console.error("Error fetching dashboard data:", error);
         } finally {
           setLoading(false);
         }
       }
     };
 
-    fetchProfile();
+    fetchData();
   }, [user]);
+
+  const getTimeAgo = (timestamp: string) => {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Loading profile...</div>;
@@ -51,24 +68,23 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Placeholder for Recent Activity */}
+      {/* Recent Activity */}
       <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
         <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-            <div>
-              <p className="font-medium">Calculus I - Derivatives</p>
-              <p className="text-sm text-gray-500">AI Tutor Session</p>
-            </div>
-            <span className="text-sm text-gray-500">2 hours ago</span>
-          </div>
-          <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
-            <div>
-              <p className="font-medium">Pomodoro Session</p>
-              <p className="text-sm text-gray-500">Pomodoro Clock</p>
-            </div>
-            <span className="text-sm text-gray-500">4 hours ago</span>
-          </div>
+          {activities.length > 0 ? (
+            activities.map((activity) => (
+              <div key={activity.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <div>
+                  <p className="font-medium">{activity.title}</p>
+                  <p className="text-sm text-gray-500">{activity.description}</p>
+                </div>
+                <span className="text-sm text-gray-500">{getTimeAgo(activity.timestamp)}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 text-center py-4">No recent activity</p>
+          )}
         </div>
       </div>
     </div>

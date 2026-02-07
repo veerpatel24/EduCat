@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { generateAIResponse, type ChatMessage } from '../services/openai';
+import { useAuth } from '../contexts/AuthContext';
+import { addUserActivity } from '../services/userService';
 
 // Add type definition for Web Speech API
 declare global {
@@ -14,6 +16,7 @@ interface UIMessage extends ChatMessage {
 }
 
 const MathTutor = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<UIMessage[]>([
     { role: 'assistant', content: "Hi! I'm your AI Tutor powered by ChatGPT. I can help you with your studies. You can also upload class materials or talk to me directly!" }
   ]);
@@ -68,6 +71,20 @@ const MathTutor = () => {
     setIsLoading(true);
 
     const apiMessages = [...messages, userMessage].map(({ role, content }) => ({ role, content }));
+    
+    // Log activity if user is logged in
+    if (user?.uid) {
+        // Truncate the input for the title if it's too long
+        const title = input.length > 30 ? input.substring(0, 30) + '...' : input;
+        addUserActivity({
+            uid: user.uid,
+            type: 'ai_tutor',
+            title: `Asked AI: "${title}"`,
+            description: 'AI Tutor Session',
+            timestamp: new Date().toISOString()
+        });
+    }
+
     const response = await generateAIResponse(apiMessages);
     
     setMessages(prev => [...prev, { role: 'assistant', content: response }]);
@@ -101,6 +118,17 @@ const MathTutor = () => {
       setMessages(prev => [...prev, userMessage]);
       setIsLoading(true);
 
+      // Log activity for file upload
+      if (user?.uid) {
+        addUserActivity({
+            uid: user.uid,
+            type: 'ai_tutor',
+            title: `Uploaded: ${file.name}`,
+            description: 'AI Tutor - File Analysis',
+            timestamp: new Date().toISOString()
+        });
+      }
+
       const apiMessages = [...messages, userMessage].map(({ role, content }) => ({ role, content }));
       const response = await generateAIResponse(apiMessages);
       
@@ -123,7 +151,7 @@ const MathTutor = () => {
       <header className="flex-none flex justify-between items-center">
         <div>
             <h1 className="text-3xl font-bold">AI Tutor</h1>
-            <p className="text-gray-500 dark:text-gray-400">Powered by ChatGPT-4o</p>
+            <p className="text-gray-500 dark:text-gray-400">Powered by <span className="font-bold">ChatGPT-5-Nano</span></p>
         </div>
         <button 
             onClick={() => setIsSpeakingEnabled(!isSpeakingEnabled)}
