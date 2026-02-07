@@ -18,37 +18,89 @@ export interface Category {
   isDefault: boolean;
 }
 
-// Simple LocalStorage Wrapper mimicking a DB Table
-class JSONTable<T extends { id: string }> {
-  private key: string;
-  private listeners: Set<() => void>;
+interface DBData {
+  assignments: Assignment[];
+  categories: Category[];
+}
 
-  constructor(key: string) {
-    this.key = key;
-    this.listeners = new Set();
-    
-    // Initialize if empty
-    if (!localStorage.getItem(this.key)) {
-      localStorage.setItem(this.key, JSON.stringify([]));
-    }
+// Global variable to track if we are in Electron
+const isElectron = 'ipcRenderer' in window;
+
+class HybridDB {
+  private data: DBData = { assignments: [], categories: [] };
+  private listeners: Set<() => void> = new Set();
+  private initialized = false;
+
+  public assignments: TableWrapper<Assignment>;
+  public categories: TableWrapper<Category>;
+
+  constructor() {
+    this.assignments = new TableWrapper<Assignment>(this, 'assignments');
+    this.categories = new TableWrapper<Category>(this, 'categories');
+    this.init();
   }
 
-  // Get current data
-  private get data(): T[] {
-    try {
-      return JSON.parse(localStorage.getItem(this.key) || '[]');
-    } catch {
-      return [];
+  private async init() {
+    if (isElectron) {
+      try {
+        const result = await (window as any).ipcRenderer.invoke('db:read');
+        if (result) {
+          this.data = result;
+        }
+      } catch (err) {
+        console.error('Failed to load from Electron FS:', err);
+      }
+    } else {
+      // Fallback to LocalStorage
+      const stored = localStorage.getItem('eduflow-db');
+      if (stored) {
+        try {
+          this.data = JSON.parse(stored);
+        } catch {
+          // ignore error
+        }
+      }
     }
-  }
 
-  // Save data and notify
-  private set data(val: T[]) {
-    localStorage.setItem(this.key, JSON.stringify(val));
+    // Seed defaults if empty
+    if (this.data.categories.length === 0) {
+      this.data.categories = [
+        { id: crypto.randomUUID(), name: 'Homework', isDefault: true },
+        { id: crypto.randomUUID(), name: 'Project', isDefault: true },
+        { id: crypto.randomUUID(), name: 'Exam Prep', isDefault: true },
+        { id: crypto.randomUUID(), name: 'Extracurricular Learning', isDefault: true },
+      ];
+      this.save();
+    }
+
+    this.initialized = true;
     this.notify();
   }
 
-  subscribe(listener: () => void) {
+  // Save entire state to persistence layer
+  public async save() {
+    if (isElectron) {
+      try {
+        await (window as any).ipcRenderer.invoke('db:write', this.data);
+      } catch (err) {
+        console.error('Failed to save to Electron FS:', err);
+      }
+    } else {
+      localStorage.setItem('eduflow-db', JSON.stringify(this.data));
+    }
+    this.notify();
+  }
+
+  public getData() {
+    return this.data;
+  }
+
+  public setData(key: keyof DBData, value: any[]) {
+    this.data[key] = value as any;
+    this.save();
+  }
+
+  public subscribe(listener: () => void) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
@@ -56,63 +108,51 @@ class JSONTable<T extends { id: string }> {
   private notify() {
     this.listeners.forEach(l => l());
   }
+}
 
-  // API mimicking Dexie for compatibility where possible
+// Wrapper to mimic a specific table
+class TableWrapper<T extends { id: string }> {
+  private db: HybridDB;
+  private key: keyof DBData;
+
+  constructor(db: HybridDB, key: keyof DBData) {
+    this.db = db;
+    this.key = key;
+  }
+
   async toArray(): Promise<T[]> {
-    return this.data;
+    return this.db.getData()[this.key] as T[];
   }
 
   async add(item: T): Promise<string> {
-    const current = this.data;
-    this.data = [...current, item];
+    const current = this.db.getData()[this.key] as T[];
+    this.db.setData(this.key, [...current, item]);
     return item.id;
   }
 
   async bulkAdd(items: T[]): Promise<string> {
-    const current = this.data;
-    this.data = [...current, ...items];
-    return items[items.length - 1]?.id; // return last id
+    const current = this.db.getData()[this.key] as T[];
+    this.db.setData(this.key, [...current, ...items]);
+    return items[items.length - 1]?.id;
   }
 
   async delete(id: string): Promise<void> {
-    const current = this.data;
-    this.data = current.filter(item => item.id !== id);
+    const current = this.db.getData()[this.key] as T[];
+    this.db.setData(this.key, current.filter(item => item.id !== id));
   }
   
-  // Helper to check if empty (for seeding)
   async count(): Promise<number> {
-    return this.data.length;
+    return (this.db.getData()[this.key] as T[]).length;
+  }
+  
+  subscribe(listener: () => void) {
+    return this.db.subscribe(listener);
   }
 }
 
-// Database Instance
-class LocalDB {
-  assignments: JSONTable<Assignment>;
-  categories: JSONTable<Category>;
+export const db = new HybridDB();
 
-  constructor() {
-    this.assignments = new JSONTable<Assignment>('assignments');
-    this.categories = new JSONTable<Category>('categories');
-    
-    this.seed();
-  }
-
-  private async seed() {
-    const count = await this.categories.count();
-    if (count === 0) {
-      await this.categories.bulkAdd([
-        { id: crypto.randomUUID(), name: 'Homework', isDefault: true },
-        { id: crypto.randomUUID(), name: 'Project', isDefault: true },
-        { id: crypto.randomUUID(), name: 'Exam Prep', isDefault: true },
-        { id: crypto.randomUUID(), name: 'Extracurricular Learning', isDefault: true },
-      ]);
-    }
-  }
-}
-
-export const db = new LocalDB();
-
-// Custom Hook to mimic useLiveQuery
+// Hook remains largely the same, but simplified
 export function useLiveQuery<T>(
   querier: () => Promise<T> | T, 
   deps: any[] = []
@@ -135,14 +175,12 @@ export function useLiveQuery<T>(
 
     runQuery();
 
-    // Subscribe to both tables to trigger re-runs on any change
-    const unsubAssignments = db.assignments.subscribe(runQuery);
-    const unsubCategories = db.categories.subscribe(runQuery);
+    // Subscribe to DB changes
+    const unsub = db.subscribe(runQuery);
 
     return () => {
       isMounted = false;
-      unsubAssignments();
-      unsubCategories();
+      unsub();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

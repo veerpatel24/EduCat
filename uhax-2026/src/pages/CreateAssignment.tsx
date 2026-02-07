@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Eye, Clock, Folder, Plus, PlusSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { db, useLiveQuery } from '../services/db';
+import { db, useLiveQuery, type Category } from '../services/db';
 
 const CreateAssignment = () => {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ const CreateAssignment = () => {
   const [description, setDescription] = useState('');
   const [focusMode, setFocusMode] = useState(false);
   const [duration, setDuration] = useState(30); // Default 30 mins
-  const [category, setCategory] = useState('Homework');
+  const [category, setCategory] = useState('');
   
   // Categories State
   const [newCategory, setNewCategory] = useState('');
@@ -25,7 +25,11 @@ const CreateAssignment = () => {
   // Set initial category when categories load
   useEffect(() => {
     if (categories && categories.length > 0 && !category) {
-      setCategory(categories[0].name);
+      // Use setTimeout to avoid synchronous state update warning
+      const timer = setTimeout(() => {
+        setCategory(categories[0].name);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [categories, category]);
 
@@ -185,7 +189,7 @@ const CreateAssignment = () => {
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                   >
-                    {categories?.map((cat: any) => (
+                    {categories?.map((cat: Category) => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
                     ))}
                   </select>

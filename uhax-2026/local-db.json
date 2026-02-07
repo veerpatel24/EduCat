@@ -1,0 +1,61 @@
+{
+  "assignments": [
+    {
+      "id": "fe63d23e-e268-4666-8976-46bbf52d8a8a",
+      "name": "Calc 4",
+      "description": "",
+      "focusMode": false,
+      "duration": 30,
+      "category": "Homework",
+      "status": "pending",
+      "createdAt": "2026-02-07T01:48:07.578Z"
+    },
+    {
+      "id": "95ff9fe8-01a4-4d2e-aa7b-59bf8cd2e12a",
+      "name": "Calc 5",
+      "description": "",
+      "focusMode": false,
+      "duration": 30,
+      "category": "Life",
+      "status": "pending",
+      "createdAt": "2026-02-07T01:57:12.470Z"
+    },
+    {
+      "id": "e9792e60-1f6e-4209-bba4-fa6983891698",
+      "name": "jsnd",
+      "description": "",
+      "focusMode": false,
+      "duration": 30,
+      "category": "Exam Prep",
+      "status": "pending",
+      "createdAt": "2026-02-07T02:04:31.629Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "e9c4f462-bf38-42b4-bfb6-ade013f9ff74",
+      "name": "Homework",
+      "isDefault": true
+    },
+    {
+      "id": "db9c22ad-b88b-45b5-be25-cc29ccd2aa28",
+      "name": "Project",
+      "isDefault": true
+    },
+    {
+      "id": "c94bf37e-f935-46c4-b478-658bcb4a0c96",
+      "name": "Exam Prep",
+      "isDefault": true
+    },
+    {
+      "id": "4ef8c5f3-c8f2-4cac-856b-dbfce22a03e1",
+      "name": "Extracurricular Learning",
+      "isDefault": true
+    },
+    {
+      "id": "d2ee20e9-e650-4de3-b104-500a6fadbe13",
+      "name": "Life",
+      "isDefault": false
+    }
+  ]
+}

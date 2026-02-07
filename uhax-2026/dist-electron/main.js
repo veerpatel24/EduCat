@@ -2,6 +2,7 @@
 const electron = require("electron");
 const path = require("node:path");
 const node_url = require("node:url");
+const fs = require("node:fs/promises");
 var _documentCurrentScript = typeof document !== "undefined" ? document.currentScript : null;
 const __dirname$1 = path.dirname(node_url.fileURLToPath(typeof document === "undefined" ? require("url").pathToFileURL(__filename).href : _documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === "SCRIPT" && _documentCurrentScript.src || new URL("main.js", document.baseURI).href));
 const DIST = path.join(__dirname$1, "../dist");
@@ -10,6 +11,22 @@ process.env.DIST = DIST;
 process.env.VITE_PUBLIC = VITE_PUBLIC;
 let win;
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
+const DB_PATH = electron.app.isPackaged ? path.join(electron.app.getPath("userData"), "eduflow-db.json") : path.join(process.cwd(), "local-db.json");
+async function initDB() {
+  console.log("Initializing DB at:", DB_PATH);
+  try {
+    await fs.access(DB_PATH);
+  } catch {
+    console.log("DB file not found, creating new one...");
+    try {
+      await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
+      await fs.writeFile(DB_PATH, JSON.stringify({ assignments: [], categories: [] }));
+      console.log("DB created successfully");
+    } catch (err) {
+      console.error("Failed to create DB file:", err);
+    }
+  }
+}
 function createWindow() {
   win = new electron.BrowserWindow({
     icon: path.join(VITE_PUBLIC, "electron-vite.svg"),
@@ -53,4 +70,25 @@ electron.app.on("web-contents-created", (_, contents) => {
     });
   });
 });
-electron.app.whenReady().then(createWindow);
+electron.app.whenReady().then(async () => {
+  await initDB();
+  electron.ipcMain.handle("db:read", async () => {
+    try {
+      const data = await fs.readFile(DB_PATH, "utf-8");
+      return JSON.parse(data);
+    } catch (error) {
+      console.error("Failed to read DB", error);
+      return { assignments: [], categories: [] };
+    }
+  });
+  electron.ipcMain.handle("db:write", async (_, data) => {
+    try {
+      await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
+      return true;
+    } catch (error) {
+      console.error("Failed to write DB", error);
+      return false;
+    }
+  });
+  createWindow();
+});

@@ -1,6 +1,7 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import fs from 'node:fs/promises'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -23,6 +24,31 @@ let win: BrowserWindow | null
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
+
+// Database Path
+const DB_PATH = app.isPackaged 
+  ? path.join(app.getPath('userData'), 'eduflow-db.json')
+  : path.join(process.cwd(), 'local-db.json');
+
+// Initialize Database File
+async function initDB() {
+  console.log('Initializing DB at:', DB_PATH);
+  try {
+    // Check if file exists
+    await fs.access(DB_PATH);
+  } catch {
+    console.log('DB file not found, creating new one...');
+    try {
+      // Ensure directory exists
+      await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
+      // If file doesn't exist (or access fails), create it with default structure
+      await fs.writeFile(DB_PATH, JSON.stringify({ assignments: [], categories: [] }));
+      console.log('DB created successfully');
+    } catch (err) {
+      console.error('Failed to create DB file:', err);
+    }
+  }
+}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -81,4 +107,29 @@ app.on('web-contents-created', (_, contents) => {
   })
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(async () => {
+  await initDB();
+
+  // IPC Handlers for Database
+  ipcMain.handle('db:read', async () => {
+    try {
+      const data = await fs.readFile(DB_PATH, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Failed to read DB', error);
+      return { assignments: [], categories: [] };
+    }
+  });
+
+  ipcMain.handle('db:write', async (_, data) => {
+    try {
+      await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2));
+      return true;
+    } catch (error) {
+      console.error('Failed to write DB', error);
+      return false;
+    }
+  });
+
+  createWindow();
+})
