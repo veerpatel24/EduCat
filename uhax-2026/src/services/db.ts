@@ -26,9 +26,17 @@ export interface Category {
   isDefault: boolean;
 }
 
+export interface UserStats {
+  coins: number;
+  streak: number;
+  lastLogin: string; // ISO Date string
+  unlockedMonsters: string[]; // List of image filenames
+}
+
 interface DBData {
   assignments: Assignment[];
   categories: Category[];
+  stats: UserStats;
 }
 
 // Global variable to track if we are in Electron
@@ -50,17 +58,23 @@ const convertTimestamps = (obj: any): any => {
 };
 
 class HybridDB {
-  private data: DBData = { assignments: [], categories: [] };
+  private data: DBData = { 
+    assignments: [], 
+    categories: [],
+    stats: { coins: 0, streak: 0, lastLogin: new Date().toISOString(), unlockedMonsters: [] }
+  };
   private listeners: Set<() => void> = new Set();
   private userId: string | null = null;
   private unsubscribeSnapshot: (() => void) | null = null;
   
   public assignments: TableWrapper<Assignment>;
   public categories: TableWrapper<Category>;
+  public stats: StatsWrapper;
 
   constructor() {
     this.assignments = new TableWrapper<Assignment>(this, 'assignments');
     this.categories = new TableWrapper<Category>(this, 'categories');
+    this.stats = new StatsWrapper(this);
     
     // Listen for auth changes
     onAuthStateChanged(auth, (user) => {
@@ -75,7 +89,11 @@ class HybridDB {
 
   private cleanup() {
     this.userId = null;
-    this.data = { assignments: [], categories: [] };
+    this.data = { 
+      assignments: [], 
+      categories: [],
+      stats: { coins: 0, streak: 0, lastLogin: new Date().toISOString(), unlockedMonsters: [] }
+    };
     if (this.unsubscribeSnapshot) {
       this.unsubscribeSnapshot();
       this.unsubscribeSnapshot = null;
@@ -97,8 +115,17 @@ class HybridDB {
         // Ensure structure matches
         this.data = {
           assignments: cleanData.assignments || [],
-          categories: cleanData.categories || []
+          categories: cleanData.categories || [],
+          stats: cleanData.stats || { coins: 0, streak: 0, lastLogin: new Date().toISOString(), unlockedMonsters: [] }
         };
+        
+        // Ensure Monster 001 is always unlocked
+        if (!this.data.stats.unlockedMonsters.includes('monster-001')) {
+          this.data.stats.unlockedMonsters.push('monster-001');
+          this.save();
+        }
+
+        this.checkStreak();
       } else {
         // Document doesn't exist.
         // Seed defaults if no data exists
@@ -111,6 +138,7 @@ class HybridDB {
   }
 
   private seedDefaults() {
+    const now = new Date().toISOString();
     // Only seed if empty
     if (this.data.categories.length === 0) {
       this.data.categories = [
@@ -119,6 +147,50 @@ class HybridDB {
         { id: crypto.randomUUID(), name: 'Exam Prep', isDefault: true },
         { id: crypto.randomUUID(), name: 'Extracurricular Learning', isDefault: true },
       ];
+      this.data.stats = {
+        coins: 0,
+        streak: 1, // Start with 1 day streak
+        lastLogin: now,
+        unlockedMonsters: []
+      };
+      this.save();
+    }
+  }
+
+  private checkStreak() {
+    const now = new Date();
+    const lastLogin = new Date(this.data.stats.lastLogin);
+    
+    // Calculate difference in days (ignoring time)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const lastDay = new Date(lastLogin.getFullYear(), lastLogin.getMonth(), lastLogin.getDate()).getTime();
+    
+    const diffTime = Math.abs(today - lastDay);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+    let needsSave = false;
+
+    if (diffDays === 1) {
+      // Streak continued
+      this.data.stats.streak += 1;
+      this.data.stats.lastLogin = now.toISOString();
+      // Award points for streak
+      const reward = 10 * this.data.stats.streak;
+      this.data.stats.coins += reward;
+      needsSave = true;
+      console.log(`Streak incremented! Awarded ${reward} coins.`);
+    } else if (diffDays > 1) {
+      // Streak broken
+      this.data.stats.streak = 1;
+      this.data.stats.lastLogin = now.toISOString();
+      needsSave = true;
+      console.log('Streak broken. Reset to 1.');
+    } else if (diffDays === 0) {
+        // Same day, just update last login time if it's been a while (optional, but good for accuracy)
+        // We won't update strictly to avoid constant writes, but if we wanted to track exact last active time we could.
+    }
+
+    if (needsSave) {
       this.save();
     }
   }
@@ -141,8 +213,8 @@ class HybridDB {
     return this.data;
   }
 
-  public setData(key: keyof DBData, value: any[]) {
-    this.data[key] = value as any;
+  public setData(key: keyof DBData, value: any) {
+    this.data[key] = value;
     this.save();
   }
 
@@ -193,6 +265,37 @@ class TableWrapper<T extends { id: string }> {
   
   subscribe(listener: () => void) {
     return this.db.subscribe(listener);
+  }
+}
+
+// Wrapper for Stats
+class StatsWrapper {
+  private db: HybridDB;
+
+  constructor(db: HybridDB) {
+    this.db = db;
+  }
+
+  async get(): Promise<UserStats> {
+    return this.db.getData().stats;
+  }
+
+  async update(updates: Partial<UserStats>): Promise<void> {
+    const current = this.db.getData().stats;
+    this.db.setData('stats', { ...current, ...updates });
+  }
+
+  async unlockMonster(monsterId: string, cost: number): Promise<boolean> {
+    const current = this.db.getData().stats;
+    if (current.coins >= cost && !current.unlockedMonsters.includes(monsterId)) {
+      this.db.setData('stats', {
+        ...current,
+        coins: current.coins - cost,
+        unlockedMonsters: [...current.unlockedMonsters, monsterId]
+      });
+      return true;
+    }
+    return false;
   }
 }
 

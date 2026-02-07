@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Award, TrendingUp, LogOut, Settings, Save } from 'lucide-react';
+import { Award, TrendingUp, LogOut, Settings, Save, Flame, Cat } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateEmail, updatePassword } from 'firebase/auth';
+import { db, useLiveQuery } from '../services/db';
 
 const Profile = () => {
   const { user, logout } = useAuth();
+  const stats = useLiveQuery(() => db.stats.get());
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState('');
@@ -76,16 +78,22 @@ const Profile = () => {
             
             <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-between">
               <div className="text-center">
-                <p className="text-2xl font-bold">1,250</p>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Points</p>
+                <p className="text-2xl font-bold text-yellow-500">{stats?.coins || 0}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide flex items-center justify-center gap-1">
+                  <Award className="w-3 h-3" /> Coins
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">12</p>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Badges</p>
+                <p className="text-2xl font-bold text-purple-500">{stats?.unlockedMonsters.length || 0}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide flex items-center justify-center gap-1">
+                  <Cat className="w-3 h-3" /> Monsters
+                </p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">5</p>
-                <p className="text-xs text-gray-500 uppercase tracking-wide">Streak</p>
+                <p className="text-2xl font-bold text-orange-500">{stats?.streak || 0}</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide flex items-center justify-center gap-1">
+                  <Flame className="w-3 h-3" /> Streak
+                </p>
               </div>
             </div>
           </div>
@@ -98,106 +106,60 @@ const Profile = () => {
             </h3>
             
             {message && (
-              <div className="bg-green-500/10 text-green-500 p-3 rounded-lg text-sm mb-4">
+              <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 text-green-500 rounded-lg text-sm">
                 {message}
               </div>
             )}
             
             {error && (
-              <div className="bg-red-500/10 text-red-500 p-3 rounded-lg text-sm mb-4">
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  Update Email
-                </label>
+                <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 text-white"
-                  placeholder={user?.email || 'email@example.com'}
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder={user?.email || ''}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
-                  New Password
-                </label>
+                <label className="block text-sm font-medium text-gray-400 mb-1">New Password</label>
                 <input
                   type="password"
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 text-white"
-                  placeholder="Leave blank to keep same"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Leave blank to keep current"
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <Save className="w-4 h-4" />
-                Save Changes
+                Update Profile
               </button>
             </form>
           </div>
         </div>
 
-        {/* Badges & Stats */}
-        <div className="w-full md:w-2/3 space-y-6">
+        {/* Recent Activity / Stats (Could be expanded later) */}
+        <div className="flex-1 space-y-6">
           <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Award className="w-5 h-5 text-yellow-500" />
-              Recent Badges
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-               {[1, 2, 3, 4].map((i) => (
-                 <div key={i} className="aspect-square bg-gray-50 dark:bg-gray-900 rounded-lg flex flex-col items-center justify-center p-2 text-center border border-gray-200 dark:border-gray-700">
-                   <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center text-yellow-600 mb-2">
-                     <Award className="w-5 h-5" />
-                   </div>
-                   <span className="text-xs font-medium">Math Whiz</span>
-                 </div>
-               ))}
-            </div>
-          </div>
-
-          <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-500" />
-              Learning Stats
+              <TrendingUp className="w-5 h-5 text-gray-500" />
+              Recent Activity
             </h3>
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Mathematics</span>
-                  <span className="font-medium">75%</span>
-                </div>
-                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Computer Science</span>
-                  <span className="font-medium">40%</span>
-                </div>
-                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: '40%' }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Physics</span>
-                  <span className="font-medium">20%</span>
-                </div>
-                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{ width: '20%' }}></div>
-                </div>
-              </div>
+              {/* Placeholder for activity log */}
+              <p className="text-gray-500 italic text-center py-8">No recent activity recorded.</p>
             </div>
           </div>
         </div>

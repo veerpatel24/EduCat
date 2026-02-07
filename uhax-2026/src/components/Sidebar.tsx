@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, Brain, User, Clock, PlusSquare } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, Brain, User, Clock, PlusSquare, Ghost } from 'lucide-react';
 
 const Sidebar = () => {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/create-assignment', icon: PlusSquare, label: 'Create Assignment' },
     { to: '/pending-assignments', icon: Clock, label: 'Assignments' },
+    { to: '/monsters', icon: Ghost, label: 'Monsters' },
     { to: '/tutor', icon: GraduationCap, label: 'AI Tutor' },
     { to: '/study', icon: Brain, label: 'Study Companion' },
     { to: '/profile', icon: User, label: 'Profile' },

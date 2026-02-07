@@ -4,6 +4,7 @@ import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import CreateAssignment from './pages/CreateAssignment';
 import PendingAssignments from './pages/Assignments';
+import Monsters from './pages/Monsters';
 import MathTutor from './pages/MathTutor';
 import StudyCompanion from './pages/StudyCompanion';
 import Profile from './pages/Profile';
@@ -31,6 +32,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="create-assignment" element={<CreateAssignment />} />
             <Route path="pending-assignments" element={<PendingAssignments />} />
+            <Route path="monsters" element={<Monsters />} />
             <Route path="tutor" element={<MathTutor />} />
             <Route path="study" element={<StudyCompanion />} />
             <Route path="profile" element={<Profile />} />
