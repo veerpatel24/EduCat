@@ -1,0 +1,20 @@
+# EduFlow AI - System Requirements
+
+## Runtime Environment
+- Node.js: v18.0.0 or higher
+- npm: v9.0.0 or higher
+- Python: v3.10+ (Recommended for build tools/node-gyp)
+- Operating System: macOS (tested), Windows 10/11, or Linux
+
+## VS Code Extensions (Recommended)
+- dsznajder.es7-react-js-snippets (ES7+ React/Redux/React-Native snippets)
+- dbaeumer.vscode-eslint (ESLint)
+- esbenp.prettier-vscode (Prettier - Code formatter)
+- bradlc.vscode-tailwindcss (Tailwind CSS IntelliSense)
+
+## Project Dependencies (Managed via package.json)
+- React v19
+- Electron v40
+- Firebase v12
+- TailwindCSS v4
+- Vite v7
