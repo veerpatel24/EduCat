@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
-import { generateAIResponse, ChatMessage } from '../services/openai';
+import { generateAIResponse, type ChatMessage } from '../services/openai';
 
 // Add type definition for Web Speech API
 declare global {
