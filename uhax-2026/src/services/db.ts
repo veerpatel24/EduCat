@@ -1,4 +1,12 @@
 import { useState, useEffect } from 'react';
+import { 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  Timestamp
+} from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { db as firestore, auth } from '../firebase';
 
 // Interfaces
 export interface Assignment {
@@ -26,9 +34,26 @@ interface DBData {
 // Global variable to track if we are in Electron
 const isElectron = 'ipcRenderer' in window;
 
+// Helper to convert Firestore Timestamps to ISO strings
+const convertTimestamps = (obj: any): any => {
+  if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Timestamp) return obj.toDate().toISOString();
+  if (Array.isArray(obj)) return obj.map(convertTimestamps);
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const key in obj) {
+      result[key] = convertTimestamps(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+};
+
 class HybridDB {
   private data: DBData = { assignments: [], categories: [] };
   private listeners: Set<() => void> = new Set();
+  private userId: string | null = null;
+  private unsubscribeSnapshot: (() => void) | null = null;
   
   public assignments: TableWrapper<Assignment>;
   public categories: TableWrapper<Category>;
@@ -36,32 +61,57 @@ class HybridDB {
   constructor() {
     this.assignments = new TableWrapper<Assignment>(this, 'assignments');
     this.categories = new TableWrapper<Category>(this, 'categories');
-    this.init();
+    
+    // Listen for auth changes
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        this.userId = user.uid;
+        this.connectFirestore();
+      } else {
+        this.cleanup();
+      }
+    });
   }
 
-  private async init() {
-    if (isElectron) {
-      try {
-        const result = await (window as any).ipcRenderer.invoke('db:read');
-        if (result) {
-          this.data = result;
-        }
-      } catch (err) {
-        console.error('Failed to load from Electron FS:', err);
-      }
-    } else {
-      // Fallback to LocalStorage
-      const stored = localStorage.getItem('eduflow-db');
-      if (stored) {
-        try {
-          this.data = JSON.parse(stored);
-        } catch {
-          // ignore error
-        }
-      }
+  private cleanup() {
+    this.userId = null;
+    this.data = { assignments: [], categories: [] };
+    if (this.unsubscribeSnapshot) {
+      this.unsubscribeSnapshot();
+      this.unsubscribeSnapshot = null;
     }
+    this.notify();
+  }
 
-    // Seed defaults if empty
+  private connectFirestore() {
+    if (!this.userId) return;
+
+    const userDocRef = doc(firestore, 'users', this.userId);
+
+    // Subscribe to real-time updates
+    this.unsubscribeSnapshot = onSnapshot(userDocRef, async (docSnap) => {
+      if (docSnap.exists()) {
+        const rawData = docSnap.data();
+        const cleanData = convertTimestamps(rawData) as DBData;
+        
+        // Ensure structure matches
+        this.data = {
+          assignments: cleanData.assignments || [],
+          categories: cleanData.categories || []
+        };
+      } else {
+        // Document doesn't exist.
+        // Seed defaults if no data exists
+        this.seedDefaults();
+      }
+      this.notify();
+    }, (error) => {
+      console.error("Firestore subscription error:", error);
+    });
+  }
+
+  private seedDefaults() {
+    // Only seed if empty
     if (this.data.categories.length === 0) {
       this.data.categories = [
         { id: crypto.randomUUID(), name: 'Homework', isDefault: true },
@@ -71,20 +121,18 @@ class HybridDB {
       ];
       this.save();
     }
-
-    this.notify();
   }
 
-  // Save entire state to persistence layer
+  // Save entire state to persistence layer (Firestore)
   public async save() {
-    if (isElectron) {
+    if (this.userId) {
       try {
-        await (window as any).ipcRenderer.invoke('db:write', this.data);
+        await setDoc(doc(firestore, 'users', this.userId), this.data);
       } catch (err) {
-        console.error('Failed to save to Electron FS:', err);
+        console.error('Failed to save to Firestore:', err);
       }
     } else {
-      localStorage.setItem('eduflow-db', JSON.stringify(this.data));
+      console.warn("Cannot save: No user logged in");
     }
     this.notify();
   }

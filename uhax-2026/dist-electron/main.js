@@ -13,19 +13,7 @@ let win;
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const DB_PATH = electron.app.isPackaged ? path.join(electron.app.getPath("userData"), "eduflow-db.json") : path.join(process.cwd(), "local-db.json");
 async function initDB() {
-  console.log("Initializing DB at:", DB_PATH);
-  try {
-    await fs.access(DB_PATH);
-  } catch {
-    console.log("DB file not found, creating new one...");
-    try {
-      await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-      await fs.writeFile(DB_PATH, JSON.stringify({ assignments: [], categories: [] }));
-      console.log("DB created successfully");
-    } catch (err) {
-      console.error("Failed to create DB file:", err);
-    }
-  }
+  console.log("Skipping local DB initialization (using Cloud Firestore).");
 }
 function createWindow() {
   win = new electron.BrowserWindow({

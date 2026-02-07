@@ -32,22 +32,9 @@ const DB_PATH = app.isPackaged
 
 // Initialize Database File
 async function initDB() {
-  console.log('Initializing DB at:', DB_PATH);
-  try {
-    // Check if file exists
-    await fs.access(DB_PATH);
-  } catch {
-    console.log('DB file not found, creating new one...');
-    try {
-      // Ensure directory exists
-      await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-      // If file doesn't exist (or access fails), create it with default structure
-      await fs.writeFile(DB_PATH, JSON.stringify({ assignments: [], categories: [] }));
-      console.log('DB created successfully');
-    } catch (err) {
-      console.error('Failed to create DB file:', err);
-    }
-  }
+  // DB initialization is now handled by Firestore in the renderer process.
+  // We no longer need to create a local JSON file.
+  console.log('Skipping local DB initialization (using Cloud Firestore).');
 }
 
 function createWindow() {
