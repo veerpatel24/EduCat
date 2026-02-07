@@ -1,64 +1,213 @@
-import { FileText, HelpCircle, Send } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Paperclip, Mic, MicOff, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { generateAIResponse, ChatMessage } from '../services/openai';
+
+// Add type definition for Web Speech API
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+  }
+}
+
+interface UIMessage extends ChatMessage {
+  display?: string;
+}
 
 const MathTutor = () => {
+  const [messages, setMessages] = useState<UIMessage[]>([
+    { role: 'assistant', content: "Hi! I'm your AI Tutor powered by ChatGPT. I can help you with your studies. You can also upload class materials or talk to me directly!" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeakingEnabled, setIsSpeakingEnabled] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Voice Recognition Logic
+  const startListening = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev ? ' ' : '') + transcript);
+      };
+      
+      recognition.start();
+    } else {
+      alert("Voice recognition is not supported in this browser.");
+    }
+  };
+
+  // Text to Speech Logic
+  const speakText = (text: string) => {
+    if (isSpeakingEnabled && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Stop previous
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() && !isLoading) return;
+
+    const userMessage: UIMessage = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    const apiMessages = [...messages, userMessage].map(({ role, content }) => ({ role, content }));
+    const response = await generateAIResponse(apiMessages);
+    
+    setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    speakText(response);
+    setIsLoading(false);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Simple text file reading
+    // For PDFs, we would need a parser, but for now we support text-based files
+    if (file.type === 'application/pdf') {
+        alert("PDF parsing is not yet supported in the browser directly. Please convert to text or copy-paste content.");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const fileMessage = `[User uploaded file: ${file.name}]\n\nContent:\n${text}`;
+      
+      // Store full content in state but display short message
+      const userMessage: UIMessage = { 
+          role: 'user', 
+          content: fileMessage,
+          display: `📄 Uploaded file: ${file.name}`
+      };
+      
+      setMessages(prev => [...prev, userMessage]);
+      setIsLoading(true);
+
+      const apiMessages = [...messages, userMessage].map(({ role, content }) => ({ role, content }));
+      const response = await generateAIResponse(apiMessages);
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      speakText(response);
+      setIsLoading(false);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
     <div className="space-y-6 h-[calc(100vh-6rem)] flex flex-col">
-      <header className="flex-none">
-        <h1 className="text-3xl font-bold">AI Math Tutor</h1>
-        <p className="text-gray-500 dark:text-gray-400">Personalized learning with AI-driven lessons.</p>
+      <header className="flex-none flex justify-between items-center">
+        <div>
+            <h1 className="text-3xl font-bold">AI Tutor</h1>
+            <p className="text-gray-500 dark:text-gray-400">Powered by ChatGPT-4o</p>
+        </div>
+        <button 
+            onClick={() => setIsSpeakingEnabled(!isSpeakingEnabled)}
+            className={`p-2 rounded-full transition-colors ${isSpeakingEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+            title={isSpeakingEnabled ? "Mute Voice" : "Enable Voice"}
+        >
+            {isSpeakingEnabled ? <Volume2 className="w-6 h-6" /> : <VolumeX className="w-6 h-6" />}
+        </button>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
-        <div className="lg:col-span-2 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <h2 className="text-xl font-semibold">Chat with AI Tutor</h2>
-          </div>
-          
-          <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-             <div className="flex gap-3 mb-4">
-               <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">AI</div>
-               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg rounded-tl-none text-sm max-w-[80%] shadow-sm">
-                 Hi! I'm your AI Tutor. Today we're learning about Matrices. Ready to start?
+      <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        {/* Chat Area */}
+        <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900 space-y-4">
+           {messages.map((msg, idx) => (
+             <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${msg.role === 'assistant' ? 'bg-blue-500' : 'bg-purple-500'}`}>
+                 {msg.role === 'assistant' ? 'AI' : 'ME'}
+               </div>
+               <div className={`p-3 rounded-lg text-sm max-w-[80%] shadow-sm ${
+                   msg.role === 'assistant' 
+                    ? 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-tl-none' 
+                    : 'bg-blue-600 text-white rounded-tr-none'
+               }`}>
+                 <p className="whitespace-pre-wrap">{msg.display || msg.content}</p>
                </div>
              </div>
-          </div>
-
-          <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Ask a question..." 
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              />
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition-colors flex items-center gap-2">
-                <span>Send</span>
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+           ))}
+           {isLoading && (
+               <div className="flex gap-3">
+                   <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">AI</div>
+                   <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg rounded-tl-none text-sm shadow-sm">
+                       <Loader2 className="w-4 h-4 animate-spin" />
+                   </div>
+               </div>
+           )}
+           <div ref={messagesEndRef} />
         </div>
 
-        <div className="space-y-6 flex flex-col">
-          {/* Sidebar Materials */}
-          <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="font-semibold mb-4">Class Materials</h3>
-            <div className="space-y-3">
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
-                <FileText className="w-5 h-5 text-blue-500" />
-                <div>
-                  <p className="font-medium text-sm">Worksheet 1.1</p>
-                  <p className="text-xs text-gray-500">Practice Problems</p>
-                </div>
-              </button>
-              <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
-                <HelpCircle className="w-5 h-5 text-purple-500" />
-                <div>
-                  <p className="font-medium text-sm">Quiz 1</p>
-                  <p className="text-xs text-gray-500">Test your knowledge</p>
-                </div>
-              </button>
+        {/* Input Area */}
+        <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="flex gap-2 items-end">
+            <input 
+                type="file" 
+                ref={fileInputRef}
+                className="hidden"
+                accept=".txt,.md,.json,.js,.ts,.tsx,.csv"
+                onChange={handleFileUpload}
+            />
+            <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 text-gray-400 hover:text-blue-500 transition-colors"
+                title="Upload Class Material (Text based)"
+            >
+                <Paperclip className="w-5 h-5" />
+            </button>
+            
+            <div className="flex-1 relative">
+                <textarea 
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ask a question..." 
+                    className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none max-h-32 min-h-[46px]"
+                    rows={1}
+                />
+                <button 
+                    onClick={startListening}
+                    className={`absolute right-2 top-2 p-1.5 rounded-lg transition-colors ${isListening ? 'bg-red-100 text-red-500 animate-pulse' : 'text-gray-400 hover:text-blue-500'}`}
+                >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
             </div>
+
+            <button 
+                onClick={handleSend} 
+                disabled={isLoading || !input.trim()}
+                className="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-5 h-5" />
+            </button>
           </div>
+          <p className="text-xs text-gray-400 mt-2 text-center">
+              Upload text files for context. Voice supported.
+          </p>
         </div>
       </div>
     </div>
