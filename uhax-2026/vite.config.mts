@@ -24,4 +24,7 @@ export default defineConfig({
       renderer: {},
     }),
   ],
+  define: {
+    'process.env': {},
+  },
 })
