@@ -47,8 +47,12 @@ const CreateAssignment = () => {
     }
   };
 
-  const handleCreateAssignment = async (e: React.FormEvent) => {
+  const handleCreateAssignment = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
+    if (!name.trim()) {
+      alert("Please enter an assignment name");
+      return;
+    }
     try {
       await db.assignments.add({
         id: crypto.randomUUID(),
@@ -217,7 +221,8 @@ const CreateAssignment = () => {
             </div>
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleCreateAssignment}
               className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-[1.02]"
             >
               Create Assignment
