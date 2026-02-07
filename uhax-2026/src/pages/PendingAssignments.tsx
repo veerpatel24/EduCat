@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Eye, Clock, Folder, Play, Pause, RotateCcw, CheckCircle, Trash2 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, type Assignment } from '../services/db';
+import { db, type Assignment, useLiveQuery } from '../services/db';
 
 const PendingAssignments = () => {
   // Database Queries
   const assignments = useLiveQuery(
-    () => db.assignments.orderBy('createdAt').reverse().toArray()
+    async () => {
+      const all = await db.assignments.toArray();
+      // Sort by createdAt descending (newest first)
+      return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
   );
 
   // Timer State (for active assignment)

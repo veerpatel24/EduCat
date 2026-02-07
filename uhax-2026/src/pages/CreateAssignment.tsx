@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Eye, Clock, Folder, Plus, PlusSquare } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../services/db';
+import { db, useLiveQuery } from '../services/db';
 
 const CreateAssignment = () => {
   const navigate = useNavigate();
