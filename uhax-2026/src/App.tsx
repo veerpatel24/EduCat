@@ -2,7 +2,8 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
-import Assignments from './pages/Assignments';
+import CreateAssignment from './pages/CreateAssignment';
+import PendingAssignments from './pages/PendingAssignments';
 import MathTutor from './pages/MathTutor';
 import StudyCompanion from './pages/StudyCompanion';
 import Profile from './pages/Profile';
@@ -28,7 +29,8 @@ function App() {
             </PrivateRoute>
           }>
             <Route index element={<Dashboard />} />
-            <Route path="assignments" element={<Assignments />} />
+            <Route path="create-assignment" element={<CreateAssignment />} />
+            <Route path="pending-assignments" element={<PendingAssignments />} />
             <Route path="tutor" element={<MathTutor />} />
             <Route path="study" element={<StudyCompanion />} />
             <Route path="profile" element={<Profile />} />
