@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Camera } from 'lucide-react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 
 const StudyCompanion = () => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -50,11 +50,11 @@ const StudyCompanion = () => {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold">Study Companion</h1>
-        <p className="text-gray-500 dark:text-gray-400">Stay focused with attention tracking and Pomodoro timer.</p>
+        <h1 className="text-3xl font-bold">Pomodoro Clock</h1>
+        <p className="text-gray-500 dark:text-gray-400">Stay focused with our built-in Pomodoro timer.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="max-w-2xl mx-auto">
         {/* Pomodoro Timer */}
         <div className="p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center text-center">
           <div className="mb-6">
@@ -91,33 +91,6 @@ const StudyCompanion = () => {
             >
               <RotateCcw className="w-6 h-6" />
             </button>
-          </div>
-        </div>
-
-        {/* Attention Tracking Preview */}
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Attention Monitor</h3>
-            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              Active
-            </span>
-          </div>
-          
-          <div className="aspect-video bg-gray-900 rounded-lg flex items-center justify-center relative overflow-hidden">
-            <div className="text-center text-gray-500">
-              <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Camera Preview</p>
-            </div>
-            
-            {/* Overlay simulation */}
-            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-3 py-1 rounded-lg text-xs text-white">
-              Focus Score: 92%
-            </div>
-          </div>
-
-          <div className="mt-4 text-sm text-gray-500">
-            <p>Our AI analyzes your facial cues to detect fatigue or distraction. Your video data is processed locally and never stored.</p>
           </div>
         </div>
       </div>

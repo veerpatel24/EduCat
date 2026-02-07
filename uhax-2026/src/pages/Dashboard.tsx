@@ -65,7 +65,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
             <div>
               <p className="font-medium">Pomodoro Session</p>
-              <p className="text-sm text-gray-500">Study Companion</p>
+              <p className="text-sm text-gray-500">Pomodoro Clock</p>
             </div>
             <span className="text-sm text-gray-500">4 hours ago</span>
           </div>
