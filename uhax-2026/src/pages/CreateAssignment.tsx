@@ -128,7 +128,7 @@ const CreateAssignment = () => {
                 </div>
                 <div>
                   <span className="font-medium block">Focus Mode</span>
-                  <span className="text-xs text-gray-500">Enable eye tracking to stay on task</span>
+                  <span className="text-xs text-gray-500">Enable mouse tracking to stay on task</span>
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
