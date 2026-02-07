@@ -27,7 +27,7 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
 // Database Path
 const DB_PATH = app.isPackaged 
-  ? path.join(app.getPath('userData'), 'eduflow-db.json')
+  ? path.join(app.getPath('userData'), 'educat-db.json')
   : path.join(process.cwd(), 'local-db.json');
 
 // Initialize Database File

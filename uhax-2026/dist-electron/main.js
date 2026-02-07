@@ -11,7 +11,7 @@ process.env.DIST = DIST;
 process.env.VITE_PUBLIC = VITE_PUBLIC;
 let win;
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const DB_PATH = electron.app.isPackaged ? path.join(electron.app.getPath("userData"), "eduflow-db.json") : path.join(process.cwd(), "local-db.json");
+const DB_PATH = electron.app.isPackaged ? path.join(electron.app.getPath("userData"), "educat-db.json") : path.join(process.cwd(), "local-db.json");
 async function initDB() {
   console.log("Skipping local DB initialization (using Cloud Firestore).");
 }

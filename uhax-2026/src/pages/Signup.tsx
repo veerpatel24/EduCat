@@ -61,7 +61,7 @@ export default function Signup() {
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-3xl font-bold text-white">Create Account</h2>
-          <p className="text-gray-400 mt-2">Join EduFlow AI today</p>
+          <p className="text-gray-400 mt-2">Join EduCat today</p>
         </div>
 
         {error && (

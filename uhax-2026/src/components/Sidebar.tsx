@@ -15,7 +15,7 @@ const Sidebar = () => {
     <aside className="w-64 bg-gray-900 text-white h-screen fixed left-0 top-0 flex flex-col border-r border-gray-800">
       <div className="p-6">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          EduFlow AI
+          EduCat
         </h1>
       </div>
 
