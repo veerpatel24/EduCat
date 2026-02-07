@@ -2,13 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, GraduationCap, Brain, User, Clock, PlusSquare, Ghost } from 'lucide-react';
 
 const Sidebar = () => {
-  const navItems = [
+  const mainNavItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/create-assignment', icon: PlusSquare, label: 'Create Assignment' },
     { to: '/pending-assignments', icon: Clock, label: 'Assignments' },
-    { to: '/monsters', icon: Ghost, label: 'Monsters' },
     { to: '/tutor', icon: GraduationCap, label: 'AI Tutor' },
     { to: '/study', icon: Brain, label: 'Study Companion' },
+    { to: '/monsters', icon: Ghost, label: 'Monsters' },
     { to: '/profile', icon: User, label: 'Profile' },
   ];
 
@@ -20,8 +19,8 @@ const Sidebar = () => {
         </h1>
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-2">
-        {navItems.map((item) => (
+      <nav className="flex-1 px-4 py-6 space-y-2 flex flex-col">
+        {mainNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -37,6 +36,22 @@ const Sidebar = () => {
             <span className="font-medium">{item.label}</span>
           </NavLink>
         ))}
+
+        <div className="flex-1" />
+
+        <NavLink
+          to="/create-assignment"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-auto ${
+              isActive
+                ? 'bg-blue-600 shadow-lg shadow-blue-900/20 text-white'
+                : 'text-gray-400 hover:bg-slate-800 hover:text-white'
+            }`
+          }
+        >
+          <PlusSquare className="w-5 h-5" />
+          <span className="font-medium">Create Assignment</span>
+        </NavLink>
       </nav>
     </aside>
   );
