@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Pause, RotateCcw, Camera } from 'lucide-react';
 
 const StudyCompanion = () => {
@@ -6,10 +6,39 @@ const StudyCompanion = () => {
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<'focus' | 'break'>('focus');
 
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      setIsActive(false);
+      // Optional: Play a sound here
+      if (mode === 'focus') {
+        setMode('break');
+        setTimeLeft(5 * 60);
+      } else {
+        setMode('focus');
+        setTimeLeft(25 * 60);
+      }
+    }
+
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft, mode]);
+
   const toggleTimer = () => setIsActive(!isActive);
+  
   const resetTimer = () => {
     setIsActive(false);
     setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60);
+  };
+
+  const handleModeChange = (newMode: 'focus' | 'break') => {
+    setMode(newMode);
+    setIsActive(false);
+    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60);
   };
 
   const formatTime = (seconds: number) => {
@@ -31,13 +60,13 @@ const StudyCompanion = () => {
           <div className="mb-6">
             <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
               <button 
-                onClick={() => setMode('focus')}
+                onClick={() => handleModeChange('focus')}
                 className={`px-4 py-1 rounded-md text-sm font-medium transition-colors ${mode === 'focus' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}
               >
                 Focus
               </button>
               <button 
-                onClick={() => setMode('break')}
+                onClick={() => handleModeChange('break')}
                 className={`px-4 py-1 rounded-md text-sm font-medium transition-colors ${mode === 'break' ? 'bg-white dark:bg-gray-600 shadow-sm' : 'text-gray-500'}`}
               >
                 Break

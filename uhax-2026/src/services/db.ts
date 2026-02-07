@@ -29,8 +29,7 @@ const isElectron = 'ipcRenderer' in window;
 class HybridDB {
   private data: DBData = { assignments: [], categories: [] };
   private listeners: Set<() => void> = new Set();
-  private initialized = false;
-
+  
   public assignments: TableWrapper<Assignment>;
   public categories: TableWrapper<Category>;
 
@@ -73,7 +72,6 @@ class HybridDB {
       this.save();
     }
 
-    this.initialized = true;
     this.notify();
   }
 
@@ -121,28 +119,28 @@ class TableWrapper<T extends { id: string }> {
   }
 
   async toArray(): Promise<T[]> {
-    return this.db.getData()[this.key] as T[];
+    return this.db.getData()[this.key] as unknown as T[];
   }
 
   async add(item: T): Promise<string> {
-    const current = this.db.getData()[this.key] as T[];
+    const current = this.db.getData()[this.key] as unknown as T[];
     this.db.setData(this.key, [...current, item]);
     return item.id;
   }
 
   async bulkAdd(items: T[]): Promise<string> {
-    const current = this.db.getData()[this.key] as T[];
+    const current = this.db.getData()[this.key] as unknown as T[];
     this.db.setData(this.key, [...current, ...items]);
     return items[items.length - 1]?.id;
   }
 
   async delete(id: string): Promise<void> {
-    const current = this.db.getData()[this.key] as T[];
+    const current = this.db.getData()[this.key] as unknown as T[];
     this.db.setData(this.key, current.filter(item => item.id !== id));
   }
   
   async count(): Promise<number> {
-    return (this.db.getData()[this.key] as T[]).length;
+    return (this.db.getData()[this.key] as unknown as T[]).length;
   }
   
   subscribe(listener: () => void) {
