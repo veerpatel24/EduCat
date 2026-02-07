@@ -23,24 +23,36 @@ const PendingAssignments = () => {
     return { assignments, categories };
   });
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+
   const assignments = data?.assignments || [];
   const categories = data?.categories || [];
+
+  // Filter assignments based on active tab
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter(a => 
+      activeTab === 'pending' 
+        ? (a.status === 'pending' || !a.status) // Handle legacy/undefined as pending
+        : a.status === 'completed'
+    );
+  }, [assignments, activeTab]);
 
   // Group assignments by category
   const assignmentsByCategory = useMemo(() => {
     const byCategory = categories.reduce((acc, cat) => {
-      acc[cat.name] = assignments
+      acc[cat.name] = filteredAssignments
       .filter((a) => a.category === cat.name)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       return acc;
     }, {} as Record<string, Assignment[]>);
 
     // Handle "Other" / deleted categories
-    const otherAssignments = assignments.filter((a) => !categories.some((c) => c.name === a.category));
+    const otherAssignments = filteredAssignments.filter((a) => !categories.some((c) => c.name === a.category));
     if (otherAssignments.length > 0) byCategory['Uncategorized'] = otherAssignments;
 
     return byCategory;
-  }, [assignments, categories]);
+  }, [filteredAssignments, categories]);
 
   // Expanded state (default open)
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
@@ -182,10 +194,33 @@ const PendingAssignments = () => {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const handleCompleteAssignment = async (id: string) => {
+      try {
+        await db.assignments.update(id, { status: 'completed' });
+        
+        // If the completed assignment was running, stop it
+        if (activeAssignmentId === id) {
+          setActiveAssignmentId(null);
+          setIsTimerRunning(false);
+          stopAttentionMonitoring();
+        }
+      } catch (error) {
+        console.error('Failed to complete assignment:', error);
+      }
+    };
+
+    const handleRestoreAssignment = async (id: string) => {
+      try {
+        await db.assignments.update(id, { status: 'pending' });
+      } catch (error) {
+        console.error('Failed to restore assignment:', error);
+      }
+    };
+
     const handleComplete = () => {
-      setActiveAssignmentId(null);
-      setIsTimerRunning(false);
-      stopAttentionMonitoring();
+      if (activeAssignmentId) {
+        handleCompleteAssignment(activeAssignmentId);
+      }
     };
 
     const handleReset = () => {
@@ -198,13 +233,43 @@ const PendingAssignments = () => {
     return (
       <div className="space-y-6">
       <header>
-      <h1 className="text-3xl font-bold">Pending Assignments</h1>
+      <h1 className="text-3xl font-bold">Assignments</h1>
       <p className="text-gray-500 dark:text-gray-400">Track and complete your tasks.</p>
       </header>
 
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`pb-3 px-4 text-sm font-medium transition-colors relative ${
+            activeTab === 'pending'
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          Pending
+          {activeTab === 'pending' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('completed')}
+          className={`pb-3 px-4 text-sm font-medium transition-colors relative ${
+            activeTab === 'completed'
+              ? 'text-blue-600 dark:text-blue-400'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+          }`}
+        >
+          Completed
+          {activeTab === 'completed' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+          )}
+        </button>
+      </div>
+
       <div className="space-y-6 max-w-4xl">
-      {/* Active Timer Card */}
-      {activeAssignment && (
+      {/* Active Timer Card (Only show for pending assignments) */}
+      {activeAssignment && activeTab === 'pending' && (
         <div className="bg-gradient-to-br from-blue-900 to-slate-900 text-white rounded-xl shadow-lg p-6 border border-blue-800">
         <div className="flex justify-between items-start mb-4">
         <div>
@@ -336,15 +401,35 @@ const PendingAssignments = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                  {!activeAssignmentId && (
-                    <button
-                    onClick={() => startAssignment(assignment)}
-                    className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-                    title="Start Focus Session"
-                    >
-                    <Play className="w-5 h-5" />
-                    </button>
+                  {!activeAssignmentId && activeTab === 'pending' && (
+                    <>
+                      <button
+                      onClick={() => handleCompleteAssignment(assignment.id)}
+                      className="p-2 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                      title="Mark as Complete"
+                      >
+                      <CheckCircle className="w-5 h-5" />
+                      </button>
+                      <button
+                      onClick={() => startAssignment(assignment)}
+                      className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                      title="Start Focus Session"
+                      >
+                      <Play className="w-5 h-5" />
+                      </button>
+                    </>
                   )}
+                  
+                  {activeTab === 'completed' && (
+                     <button
+                     onClick={() => handleRestoreAssignment(assignment.id)}
+                     className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                     title="Restore to Pending"
+                     >
+                     <RotateCcw className="w-5 h-5" />
+                     </button>
+                  )}
+
                   <button
                   onClick={() => handleDeleteAssignment(assignment.id)}
                   className="p-2 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"

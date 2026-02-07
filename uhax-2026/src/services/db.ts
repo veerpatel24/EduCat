@@ -258,6 +258,17 @@ class TableWrapper<T extends { id: string }> {
     const current = this.db.getData()[this.key] as unknown as T[];
     this.db.setData(this.key, current.filter(item => item.id !== id));
   }
+
+  async update(id: string, updates: Partial<T>): Promise<void> {
+    const current = this.db.getData()[this.key] as unknown as T[];
+    const index = current.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const updatedItem = { ...current[index], ...updates };
+      const newArray = [...current];
+      newArray[index] = updatedItem;
+      this.db.setData(this.key, newArray);
+    }
+  }
   
   async count(): Promise<number> {
     return (this.db.getData()[this.key] as unknown as T[]).length;
