@@ -16,7 +16,7 @@ export const generateAIResponse = async (messages: ChatMessage[]) => {
   try {
     const completion = await openai.chat.completions.create({
       messages: messages,
-      model: 'gpt-4o', // Using gpt-4o as it's the latest and most capable
+      model: 'gpt-5-nano', // Updated to gpt-5-nano as requested
     });
 
     return completion.choices[0]?.message?.content || "I apologize, but I couldn't generate a response.";
